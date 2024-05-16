@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Excel to JSON Converter</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <input type="file" id="fileInput">
+  <button id="convertButton">Convert</button>
+  <a id="downloadLink" style="display: none;">Download JSON</a>
+  <pre id="jsonOutput"></pre>
+  <p id="jsonCount"></p>
+  <p id="excelRowCount" style="display: none;"></p>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+  <script>
+    document.getElementById('convertButton').addEventListener('click', function() {
+      const fileInput = document.getElementById('fileInput');
+      const file = fileInput.files[0];
+      
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const data = event.target.result;
+          const workbook = XLSX.read(data, { type: 'binary' });
+          const sheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+          
+          // Specify the expected date format (assuming "DD/MM/YYYY")
+          const jsonData = XLSX.utils.sheet_to_json(sheet, { raw: false, dateNF: 'DD/MM/YYYY' });
+
+          // Convert Excel serial numbers to dates
+          jsonData.forEach(function(row) {
+            row.Date = formatDate(new Date(row.Date));
+          });
+
+          const jsonContent = JSON.stringify(jsonData, null, 2);
+          document.getElementById('jsonOutput').textContent = jsonContent;
+
+          // Display the number of objects in JSON data
+          document.getElementById('jsonCount').textContent = "Number of objects: " + jsonData.length;
+
+          // Create a Blob containing the JSON data
+          const blob = new Blob([jsonContent], { type: 'application/json' });
+          const downloadLink = document.getElementById('downloadLink');
+          downloadLink.href = URL.createObjectURL(blob);
+          downloadLink.download = 'converted_data.json';
+          downloadLink.style.display = 'block';
+
+          // Display the number of lines in the Excel file
+          const excelRowCount = workbook.Sheets[sheetName]['!range'].e.r + 1;
+          document.getElementById('excelRowCount').textContent = "Number of lines in Excel: " + excelRowCount;
+          document.getElementById('excelRowCount').style.display = 'block';
+        };
+        reader.onerror = function(event) {
+          console.error("File could not be read! Code " + event.target.error.code);
+        };
+        reader.readAsBinaryString(file);
+      } else {
+        alert('Please select a file.');
+      }
+    });
+
+    function formatDate(date) {
+      const day = date.getDate();
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
+      return (day < 10 ? '0' : '') + day + '/' + (month < 10 ? '0' : '') + month + '/' + year;
+    }
+  </script>
+</body>
+</html>

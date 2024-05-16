@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSV to JSON Converter</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <input type="file" id="fileInput">
+  <button id="convertButton">Convert</button>
+  <a id="downloadLink" style="display: none;">Download JSON</a>
+  <p id="jsonCount"></p>
+  <p id="csvCount" style="display: none;"></p>
+  <pre id="jsonOutput"></pre>
+  <script>
+    document.getElementById('convertButton').addEventListener('click', function() {
+      const fileInput = document.getElementById('fileInput');
+      const file = fileInput.files[0];
+      
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const data = event.target.result;
+          const jsonData = csvToJson(data);
+          const jsonContent = JSON.stringify(jsonData, null, 2);
+          document.getElementById('jsonOutput').textContent = jsonContent;
+
+          // Display the number of JSON objects
+          document.getElementById('jsonCount').textContent = "Number of JSON objects: " + jsonData.length;
+
+          // Create a Blob containing the JSON data
+          const blob = new Blob([jsonContent], { type: 'application/json' });
+          const downloadLink = document.getElementById('downloadLink');
+          downloadLink.href = URL.createObjectURL(blob);
+          downloadLink.download = 'converted_data.json';
+          downloadLink.style.display = 'block';
+
+          // Display the number of CSV entries (rows)
+          const csvLines = data.split('\n');
+          const csvCount = csvLines.length - 1; // Exclude header line
+          document.getElementById('csvCount').textContent = "Number of CSV entries: " + csvCount;
+          document.getElementById('csvCount').style.display = 'block';
+        };
+        reader.onerror = function(event) {
+          console.error("File could not be read! Code " + event.target.error.code);
+        };
+        reader.readAsText(file);
+      } else {
+        alert('Please select a file.');
+      }
+    });
+
+    function csvToJson(csv) {
+      const lines = csv.split('\n');
+      const result = [];
+      const headers = lines[0].split(',');
+
+      for (let i = 1; i < lines.length; i++) {
+        const obj = {};
+        const currentLine = lines[i].split(',');
+
+        for (let j = 0; j < headers.length; j++) {
+          obj[headers[j].trim()] = currentLine[j].trim();
+        }
+
+        result.push(obj);
+      }
+
+      return result;
+    }
+  </script>
+</body>
+</html>
